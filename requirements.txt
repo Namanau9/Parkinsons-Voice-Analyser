@@ -1,0 +1,9 @@
+praat-parselmouth
+librosa
+soundfile
+scikit-learn
+joblib
+flask
+pyngrok
+ffmpeg-python
+waitress
