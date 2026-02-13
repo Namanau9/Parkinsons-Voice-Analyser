@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NeuroVoice | Parkinson's Detector</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00b4d8; --primary-dark: #0077b6; --secondary: #90e0ef;
+      --accent: #00b4d8; --bg-gradient-start: #caf0f8; --bg-gradient-end: #f0f8ff;
+      --surface: #ffffff; --text-main: #2b2d42; --text-light: #8d99ae;
+      --success: #4ade80; --danger: #ef233c; --shadow: 0 10px 30px -10px rgba(0,119,182,0.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end)); color: var(--text-main); min-height: 100vh; display:flex; justify-content:center; align-items:center; overflow-x:hidden; }
+    .app-container { background: var(--surface); width:90%; max-width:900px; border-radius:24px; box-shadow:var(--shadow); display:grid; grid-template-columns:1fr 1fr; overflow:hidden; animation: fadeInUP 0.8s cubic-bezier(0.2,0.8,0.2,1); }
+    .hero-section { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); padding:3rem; display:flex; flex-direction:column; justify-content:center; color:white; position:relative; overflow:hidden; }
+    .hero-section::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%); animation: rotateBg 20s linear infinite; }
+    .hero-content { position:relative; z-index:2; }
+    .hero-title { font-size:2.5rem; font-weight:700; margin-bottom:1rem; line-height:1.1; }
+    .hero-subtitle { opacity:0.9; font-size:1.1rem; margin-bottom:2rem; font-weight:300; }
+    .pulse-icon { font-size:4rem; margin-bottom:1.5rem; color:rgba(255,255,255,0.9); animation:heartbeat 2s infinite; }
+    .interaction-section { padding:3rem; display:flex; flex-direction:column; gap:2rem; }
+    .section-header h2 { color:var(--primary-dark); font-size:1.5rem; margin-bottom:0.5rem; }
+    .section-header p { color:var(--text-light); font-size:0.9rem; }
+    .input-group { border:2px dashed var(--secondary); border-radius:16px; padding:2rem; text-align:center; transition:all 0.3s ease; background:#f8fdff; position:relative; }
+    .input-group:hover { border-color:var(--primary); background:#f0faff; }
+    .file-input-wrapper { position:relative; width:100%; height:100%; cursor:pointer; }
+    #file-input { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+    .upload-label { pointer-events:none; }
+    .upload-label i { font-size:2rem; color:var(--primary); margin-bottom:0.5rem; display:block;}
+    .controls { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .btn { border:none; padding:1rem; border-radius:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.5rem; transition:transform 0.2s, box-shadow 0.2s; font-family:inherit; }
+    .btn:active { transform:scale(0.98); }
+    .btn-record { background:white; border:2px solid var(--primary); color:var(--primary); }
+    .btn-record.recording { background:var(--danger); border-color:var(--danger); color:white; animation:pulseRed 1.5s infinite; }
+    .btn-predict { background:var(--primary); color:white; box-shadow:0 4px 14px rgba(0,180,216,0.4); grid-column:span 2; }
+    .btn-predict:hover { background:var(--primary-dark); }
+    #rec-status { display:block; text-align:center; font-size:0.85rem; color:var(--text-light); height:1.2rem; margin-top:-1rem; margin-bottom:0.5rem; }
+    .result-container { margin-top:1rem; padding:1.5rem; border-radius:16px; background:#f1f5f9; display:none; animation:slideUp 0.4s ease-out; }
+    .result-header { font-weight:700; font-size:1.1rem; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem; }
+    .probability-bar { height:8px; background:#ddd; border-radius:4px; margin:10px 0; overflow:hidden; }
+    .probability-fill { height:100%; background:var(--primary); width:0%; transition:width 1s ease-out; }
+    .result-details { font-size:0.85rem; color:var(--text-light); font-family:monospace; background:rgba(255,255,255,0.5); padding:0.5rem; border-radius:8px; max-height:200px; overflow-y:auto; }
+    @keyframes fadeInUP { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes heartbeat { 0% { transform:scale(1); } 15% { transform:scale(1.15); } 30% { transform:scale(1); } 45% { transform:scale(1.15); } 60% { transform:scale(1); } }
+    @keyframes pulseRed { 0% { box-shadow:0 0 0 0 rgba(239,35,60,0.7); } 70% { box-shadow:0 0 0 10px rgba(239,35,60,0); } 100% { box-shadow:0 0 0 0 rgba(239,35,60,0); } }
+    @keyframes rotateBg { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
+    @keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @media (max-width:768px) { .app-container { grid-template-columns:1fr; margin:1rem; width:auto; } .hero-section { padding:2rem; text-align:center; } .controls { grid-template-columns:1fr; } .btn-predict { grid-column:span 1; } }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Left Panel: Branding -->
+    <div class="hero-section">
+      <div class="hero-content">
+        <i class="fas fa-heartbeat pulse-icon"></i>
+        <h1 class="hero-title">Parkinson's<br>Voice Predictor</h1>
+        <p class="hero-subtitle">AI-Powered Medical Analysis</p>
+        <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 12px; backdrop-filter: blur(5px);">
+          <i class="fas fa-info-circle"></i>
+          <small>Upload or record a sustained vowel <b>/a/</b> (~3 seconds) for best results.</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Interaction -->
+    <div class="interaction-section">
+      <div class="section-header">
+        <h2>Analysis Input</h2>
+        <p>Choose an audio file or record directly.</p>
+      </div>
+
+      <!-- File Upload Area -->
+      <div class="input-group">
+        <div class="file-input-wrapper">
+          <!-- prefer wav for faster processing, allow other audio as fallback -->
+          <input type="file" id="file-input" accept="audio/wav,audio/*">
+          <div class="upload-label" id="upload-text">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <span>Click or Drop Audio File Here</span>
+            <div id="file-name-display" style="font-size: 0.8rem; color: var(--primary); margin-top: 0.5rem;"></div>
+          </div>
+        </div>
+      </div>
+
+      <span id="rec-status">Ready to record</span>
+
+      <!-- Action Buttons -->
+      <div class="controls">
+        <button id="record-btn" class="btn btn-record">
+          <i class="fas fa-microphone"></i> <span>Start Recording</span>
+        </button>
+        
+        <button id="predict-btn" class="btn btn-predict">
+          <i class="fas fa-paper-plane"></i> Analyze Voice
+        </button>
+      </div>
+
+      <!-- Result Area -->
+      <div id="result" class="result-container"></div>
+
+      <!-- Hidden: dataset path -->
+      <div id="dataset-path" data-path="parkinsons.data" style="display:none"></div>
+    </div>
+  </div>
+
+<script>
+/* ----- helpers ----- */
+const fileInput = document.getElementById('file-input');
+const recordBtn = document.getElementById('record-btn');
+const recStatus = document.getElementById('rec-status');
+const predictBtn = document.getElementById('predict-btn');
+const resultDiv = document.getElementById('result');
+const fileNameDisplay = document.getElementById('file-name-display');
+const uploadText = document.getElementById('upload-text');
+
+let mediaRecorder, audioChunks = [], lastBlob = null;
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length > 0) {
+    fileNameDisplay.textContent = "Selected: " + fileInput.files[0].name;
+    uploadText.querySelector('span').textContent = "Change File";
+    uploadText.querySelector('i').className = "fas fa-file-audio";
+    lastBlob = null;
+  }
+});
+
+/* Try to convert a Blob (webm/ogg) to WAV Blob client-side.
+   Returns WAV Blob or throws if conversion not supported. */
+async function blobToWav(blob) {
+  // decode audio to AudioBuffer
+  const arrayBuffer = await blob.arrayBuffer();
+  const ac = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 2, 22050);
+
+  // Use regular AudioContext decode if OfflineAudioContext decode not supported
+  let audioBuffer;
+  try {
+    audioBuffer = await ac.decodeAudioData(arrayBuffer);
+  } catch (err) {
+    // fallback decode via temporary AudioContext
+    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioBuffer = await tmpCtx.decodeAudioData(arrayBuffer);
+    tmpCtx.close?.();
+  }
+
+  // render to offline context at 22050 Hz
+  const offline = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(audioBuffer.numberOfChannels, Math.max(1, Math.floor(audioBuffer.duration * 22050)), 22050);
+  const bufferSource = offline.createBufferSource();
+  bufferSource.buffer = audioBuffer;
+  bufferSource.connect(offline.destination);
+  bufferSource.start(0);
+  const rendered = await offline.startRendering();
+
+  // convert rendered AudioBuffer to WAV (16-bit PCM)
+  const ch0 = rendered.getChannelData(0);
+  const len = ch0.length;
+  const wavBuffer = new ArrayBuffer(44 + len * 2);
+  const view = new DataView(wavBuffer);
+
+  function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+  // RIFF header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + len * 2, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, 22050, true); // sampleRate
+  view.setUint32(28, 22050 * 2, true); // byteRate
+  view.setUint16(32, 2, true); // blockAlign
+  view.setUint16(34, 16, true); // bitsPerSample
+  writeString(view, 36, 'data');
+  view.setUint32(40, len * 2, true);
+
+  // PCM conversion
+  let offset = 44;
+  for (let i = 0; i < len; i++) {
+    const s = Math.max(-1, Math.min(1, ch0[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    offset += 2;
+  }
+  return new Blob([view], { type: 'audio/wav' });
+}
+
+/* Recording UI */
+recordBtn.onclick = async () => {
+  if (recordBtn.dataset.recording === "1") {
+    mediaRecorder.stop();
+    recordBtn.innerHTML = '<i class="fas fa-microphone"></i> <span>Start Recording</span>';
+    recordBtn.classList.remove('recording');
+    recordBtn.dataset.recording = "0";
+    fileNameDisplay.textContent = "Microphone Recording Captured";
+    fileInput.value = "";
+  } else {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        lastBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        recStatus.textContent = 'Recording ready for analysis';
+        recStatus.style.color = 'var(--success)';
+      };
+      mediaRecorder.start();
+      recordBtn.innerHTML = '<i class="fas fa-stop"></i> <span>Stop Recording</span>';
+      recordBtn.classList.add('recording');
+      recordBtn.dataset.recording = "1";
+      recStatus.textContent = 'Recording... (Speak /a/ for 3s)';
+      recStatus.style.color = 'var(--danger)';
+    } catch (err) {
+      alert('Could not access microphone: ' + err.message);
+    }
+  }
+};
+
+/* Convert lastBlob (webm) to wav blob if possible and return {blob, filename} */
+async function prepareUploadBlob(fileObj) {
+  // if user selected file (File object), just return it
+  if (fileObj instanceof File) {
+    return { blob: fileObj, filename: fileObj.name };
+  }
+  // if we have lastBlob (recording), attempt convert to wav
+  if (lastBlob) {
+    try {
+      // If recording is already a WAV, keep it
+      if ((lastBlob.type || '').includes('wav')) {
+        return { blob: lastBlob, filename: 'recording.wav' };
+      }
+      // attempt conversion to wav
+      const wav = await blobToWav(lastBlob);
+      return { blob: wav, filename: 'recording.wav' };
+    } catch (err) {
+      // conversion failed — fallback to original blob
+      console.warn("WAV conversion failed, uploading raw blob:", err);
+      return { blob: lastBlob, filename: 'recording.raw' };
+    }
+  }
+  throw new Error("No file/blob available");
+}
+
+/* Predict click handler */
+predictBtn.onclick = async () => {
+  // build FormData
+  let fd = new FormData();
+  try {
+    if (fileInput.files.length > 0) {
+      const { blob, filename } = await prepareUploadBlob(fileInput.files[0]);
+      fd.append('audio', blob, filename);
+    } else if (lastBlob) {
+      const { blob, filename } = await prepareUploadBlob(null);
+      fd.append('audio', blob, filename);
+    } else {
+      alert('Please upload or record an audio file first.');
+      return;
+    }
+  } catch (err) {
+    alert("Error preparing audio for upload: " + err.message);
+    return;
+  }
+
+  // UI: loading
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = `<div style="text-align:center; color: var(--primary);">
+      <i class="fas fa-spinner fa-spin fa-2x"></i>
+      <p style="margin-top:10px">Analyzing voice patterns...</p>
+    </div>`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 30000);
+
+  try {
+    const res = await fetch('/predict', { method: 'POST', body: fd, signal: controller.signal });
+    clearTimeout(timeout);
+
+    const text = await res.text();
+
+    // if not OK status, try parse JSON error payload or show raw text
+    if (!res.ok) {
+      let parsed = null;
+      try { parsed = JSON.parse(text); } catch(e){}
+      const message = parsed?.message || parsed?.error || text || "Server returned error";
+      resultDiv.innerHTML = `<div style="color:var(--danger); text-align:center;">
+        <i class="fas fa-exclamation-triangle"></i> Server error: ${message}
+        ${parsed ? `<pre style="text-align:left; max-height:200px; overflow:auto;">${JSON.stringify(parsed,null,2)}</pre>` : `<pre style="text-align:left; max-height:200px; overflow:auto;">${text.replace(/</g,'&lt;')}</pre>`}
+      </div>`;
+      return;
+    }
+
+    // ok -> parse JSON
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      resultDiv.innerHTML = `<div style="color:var(--danger); text-align:center;">
+        <i class="fas fa-exclamation-triangle"></i> Unexpected server response:
+        <pre style="text-align:left; max-height:300px; overflow:auto;">${text.replace(/</g,'&lt;')}</pre>
+      </div>`;
+      return;
+    }
+
+    // robust probability/pred parsing
+    let pred = data.prediction;
+    if (typeof pred === 'string' && /^\d+$/.test(pred)) pred = parseInt(pred, 10);
+    if (typeof pred !== 'number') {
+      if (Array.isArray(data.probabilities) && Array.isArray(data.probabilities[0])) {
+        pred = data.probabilities[0][1] >= data.probabilities[0][0] ? 1 : 0;
+      } else {
+        pred = data.prediction ? 1 : 0;
+      }
+    }
+
+    let positiveProb = null;
+    if (typeof data.probability === 'number') positiveProb = data.probability;
+    else if (Array.isArray(data.probabilities) && Array.isArray(data.probabilities[0])) positiveProb = Number(data.probabilities[0][1]);
+    else if (data.probabilities && typeof data.probabilities === 'object' && data.probabilities.positive !== undefined) positiveProb = Number(data.probabilities.positive);
+
+    if (typeof positiveProb !== 'number' || Number.isNaN(positiveProb)) positiveProb = null;
+    else positiveProb = Math.max(0, Math.min(1, positiveProb));
+
+    const predictionText = pred === 1 ? "Positive (Parkinson's Detected)" : "Negative (Healthy)";
+    const color = pred === 1 ? "#ef233c" : "#4ade80";
+    const probabilityPct = (positiveProb !== null) ? (positiveProb * 100).toFixed(2) + "%" : "N/A";
+    const barWidth = (positiveProb !== null) ? (positiveProb * 100) : 0;
+
+    const cachedTag = (data.meta && data.meta.cached) ? "<small style='color:#666; margin-left:10px'>(cached)</small>" : "";
+
+    resultDiv.innerHTML = `
+      <div class="result-header" style="color:${color}">
+        <i class="fas ${pred===1 ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i>
+        ${predictionText} ${cachedTag}
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
+        <span>Probability of Parkinson's</span><span>${probabilityPct}</span>
+      </div>
+      <div class="probability-bar"><div class="probability-fill" style="width:${barWidth}%; background-color:${color}"></div></div>
+      <details><summary style="cursor:pointer; font-size:0.8rem; margin-bottom:0.5rem; color:var(--primary);">View Raw Analysis Details</summary>
+        <div class="result-details"><pre>${JSON.stringify(data, null, 2)}</pre></div></details>
+    `;
+  } catch (err) {
+    clearTimeout(timeout);
+    const msg = (err.name === 'AbortError') ? 'Request timed out (30s)' : err.message;
+    resultDiv.innerHTML = `<div style="color: var(--danger); text-align:center;">
+      <i class="fas fa-times-circle"></i> Error: ${msg}
+    </div>`;
+  }
+};
+</script>
+
+</body>
+</html>
